@@ -1,0 +1,21 @@
+---
+- name: Create EKL-81UA lircd config file
+  ansible.builtin.copy:
+    src: '{{ KVM_MODEL }}.lircd.conf'
+    dest: /etc/lirc/lircd.conf.d/
+  register: lircd_device_conf
+  notify: restart_lircd
+
+- name: Flush handlers
+  meta: flush_handlers
+
+- name: Test config with irsend
+  ansible.builtin.command:
+    cmd: 'irsend --count=5 SEND_ONCE EKL-81UA KEY_1'
+  register: irsend
+
+- name: Add KVM buttons to override.yaml
+  ansible.builtin.template:
+    src: '{{ KVM_MODEL }}.yaml.j2'
+    dest: '/etc/kvmd/override.d/{{ KVM_MODEL }}.yaml'
+  notify: restart_kvmd

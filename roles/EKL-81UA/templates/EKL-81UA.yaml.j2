@@ -1,0 +1,27 @@
+#jinja2: trim_blocks:False
+---
+kvmd:
+    gpio:
+        drivers:
+{%- for number in KVM_SWITCHES %}
+            kvm{{ number }}:
+                type: cmd
+                cmd: [/usr/bin/irsend, --count={{ GLOBAL_IR_SEND_COUNT }}, SEND_ONCE, {{ KVM_MODEL }}, KEY_{{ number }} ]
+{% endfor %}
+        scheme:
+{%- for number in KVM_SWITCHES %}
+            kvm{{ number }}_button:
+                driver: kvm{{ number }}
+                pin: 0
+                mode: output
+                switch: false
+{% endfor %}
+        view:
+            header:
+                title: KVM Input
+            table:
+                - ["#{{ KVM_MODEL }}"]
+                - []
+{%- for number in KVM_SWITCHES %}
+                - ["kvm{{ number }}_button||KVM {{ number }}"]
+{% endfor %}

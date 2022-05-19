@@ -1,0 +1,9 @@
+---
+pikvm-ir:
+  children:
+    infrared-tx:
+      hosts:
+        pikvm-tx:
+          ansible_host: <IP of KVM>
+      vars:
+        ansible_user: root

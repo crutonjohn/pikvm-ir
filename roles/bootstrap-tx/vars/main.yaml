@@ -1,0 +1,3 @@
+---
+KVM_GPIO_PIN_NUMBER: "19"
+LIRC_OPTIONS_TX_DEVICE: "/dev/lirc0"

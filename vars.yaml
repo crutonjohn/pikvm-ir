@@ -1,0 +1,6 @@
+---
+KVM_GPIO_PIN_NUMBER: "19"
+LIRC_OPTIONS_TX_DEVICE: "/dev/lirc0"
+KVM_MODEL: "EKL-81UA"
+LIRC_BUILD_DIR: "/home/kvmd-webterm/pikvm-ir"
+GLOBAL_IR_SEND_COUNT: "5"

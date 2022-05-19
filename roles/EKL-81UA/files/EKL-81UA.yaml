@@ -1,0 +1,16 @@
+---
+kvmd:
+    gpio:
+        drivers:
+            kvm1:
+                type: cmd
+                cmd: [/usr/bin/irsend, --count=5, ]
+        scheme:
+            reboot_button:
+                driver: reboot
+                pin: 0
+                mode: output
+                switch: false
+        view:
+            table:
+                - ["reboot_button|confirm|Reboot PiKVM"]

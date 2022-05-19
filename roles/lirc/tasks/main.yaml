@@ -1,0 +1,93 @@
+---
+- name: Set filesystem to Read/Write
+  ansible.builtin.command:
+    cmd: /usr/local/bin/rw
+  register: rw_root_filesystem
+  notify: set_ro_root
+
+- name: Temporarily allow switching to kvmd-webterm user
+  ansible.builtin.user:
+    name: kvmd-webterm
+    shell: /bin/bash
+  notify: set_webterm_shell
+  changed_when: true
+
+- name: Temporarily allow kvmd-webterm to execute makepkg
+  ansible.builtin.lineinfile:
+    path: '/etc/sudoers.d/99-ansible-pikvm-ir'
+    line: "kvmd-webterm ALL=NOPASSWD:/usr/bin/makepkg,/usr/bin/pacman"
+    create: yes
+  notify: lirc_sudoers_makepkg
+
+- name: Create temporary operational directory
+  ansible.builtin.file:
+    state: directory
+    path: "{{ LIRC_BUILD_DIR }}/lirc-git"
+  notify: lirc_patch_build_cleanup
+  become: yes
+  become_user: kvmd-webterm
+
+- name: Clone lirc-git from the AUR
+  ansible.builtin.git:
+    accept_hostkey: yes
+    repo: https://aur.archlinux.org/lirc-git.git
+    dest: '{{ LIRC_BUILD_DIR }}/lirc-git'
+    update: no
+  become: yes
+  become_user: kvmd-webterm
+
+- name: Download lirc patch file
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/neuralassembly/raspi/master/lirc-gpio-ir-0.10.patch
+    dest: '{{ LIRC_BUILD_DIR }}/lirc-git'
+  become: yes
+  become_user: kvmd-webterm
+
+- name: Change parameters for build file
+  ansible.builtin.lineinfile:
+    path: '{{ LIRC_BUILD_DIR }}/lirc-git/PKGBUILD'
+    regexp: "^arch=.+$"
+    line: "arch=('armv7h')"
+  register: lirc_pkgbuild_arch
+  become: yes
+  become_user: kvmd-webterm
+
+- name: Add patch to PKGBUILD
+  ansible.builtin.lineinfile:
+    path: '{{ LIRC_BUILD_DIR }}/lirc-git/PKGBUILD'
+    # insertafter: 'prepare.+[\r\n]+\s+cd\s.+[\r\n]+'
+    insertbefore: 'patch.+unfuck_build.patch$'
+    line: "  patch -Np1 -i ../../lirc-gpio-ir-0.10.patch || true"
+  register: lirc_pkgbuild_patch
+  become: yes
+  become_user: kvmd-webterm
+
+- name: Update pacman repos
+  ansible.builtin.command:
+    cmd: pacman -Sy
+
+- name: Build custom lirc package
+  ansible.builtin.command:
+    cmd: makepkg -s --noconfirm
+    chdir: '{{ LIRC_BUILD_DIR }}/lirc-git'
+  become_user: kvmd-webterm
+  register: makepkg_lirc
+
+- name: Find build artifact
+  ansible.builtin.find:
+    paths:
+      - '{{ LIRC_BUILD_DIR }}/lirc-git'
+    patterns:
+      - "lirc-git-*.pkg.tar.xz"
+  register: lirc_build_artifact
+
+- debug:
+    msg: "path is {{ lirc_build_artifact.files.0.path }}"
+
+- name: Install custom lirc package
+  ansible.builtin.command:
+    cmd: "pacman -U {{ lirc_build_artifact.files.0.path }} --noconfirm"
+  notify: restart_lircd
+
+- name: Flush handlers
+  meta: flush_handlers

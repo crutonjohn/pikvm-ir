@@ -1,0 +1,34 @@
+---
+- name: Set filesystem to Read/Write
+  ansible.builtin.command:
+    cmd: /usr/local/bin/rw
+  register: rw_root_filesystem
+  notify: set_ro_root
+
+- name: Enable GPIO pin in boot config
+  ansible.builtin.blockinfile:
+    path: /boot/config.txt
+    marker: "# {mark} Infrared Transmit"
+    block: |
+      dtoverlay=gpio-ir-tx,gpio_pin={{ KVM_GPIO_PIN_NUMBER }}
+  register: boot_config
+  notify: reboot
+
+- name: Set driver in lirc_options config
+  ansible.builtin.lineinfile:
+    path: /etc/lirc/lirc_options.conf
+    regexp: '^driver\s+=\s+\S+$'
+    line: 'driver = default'
+  register: lirc_options_driver
+  notify: restart_lircd
+
+- name: Set device in lirc_options config
+  ansible.builtin.lineinfile:
+    path: /etc/lirc/lirc_options.conf
+    regexp: '^device\s+=\s+\S+$'
+    line: 'device = {{ LIRC_OPTIONS_TX_DEVICE }}'
+  register: lirc_options_device
+  notify: restart_lircd
+
+- name: Flush handlers
+  meta: flush_handlers

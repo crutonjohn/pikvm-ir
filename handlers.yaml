@@ -1,0 +1,34 @@
+---
+- name: restart_lircd
+  ansible.builtin.systemd:
+    name: lircd
+    state: restarted
+    enabled: yes
+
+- name: set_ro_root
+  ansible.builtin.command:
+    cmd: /usr/local/bin/rw
+
+- name: lirc_patch_build_cleanup
+  ansible.builtin.file:
+    path: '{{ LIRC_BUILD_DIR }}'
+    state: absent
+
+- name: set_webterm_shell
+  ansible.builtin.user:
+    name: kvmd-webterm
+    shell: /usr/bin/nologin
+
+- name: lirc_sudoers_makepkg
+  ansible.builtin.file:
+    path: '/etc/sudoers.d/99-ansible-pikvm-ir'
+    state: absent
+
+- name: restart_kvmd
+  ansible.builtin.systemd:
+    name: kvmd
+    state: restarted
+
+- name: reboot
+  ansible.builtin.reboot:
+

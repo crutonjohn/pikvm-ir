@@ -1,0 +1,17 @@
+---
+- name: Provision PiKVM for IR KVM TX
+  vars_files:
+    - "../vars.yaml"
+  hosts: infrared-tx
+  handlers:
+    - import_tasks: ../handlers.yaml
+  any_errors_fatal: true
+  pre_tasks:
+    - name: Pausing for 5 seconds...
+      pause:
+        seconds: 5
+  become: true
+  roles:
+    - lirc
+    - bootstrap-tx
+    - "{{ KVM_MODEL }}"
